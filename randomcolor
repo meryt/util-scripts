@@ -1,0 +1,122 @@
+#!/bin/node
+
+// Usage:
+//
+// randrgb --- get 10 random colors of random lightness
+// randrgb [bright|light|dark] ---- get 10 random colors of this luminosity
+// randrgb <huename> --- get 10 random colors of this hue
+//      (red, orange, yellow, green, blue, purple, pink, monochrome (for grays))
+// randrgb [bright|light|dark] <huename> ---- get 10 colors of this lightness & hue
+
+var randomColor = require ('/usr/lib/node_modules/randomcolor/randomColor.js');
+
+var toHex = function (/* Number */ red, /* Number */ green, /* Number */ blue) {
+        // summary:
+        //  Converts 3 RGB integer values into a Hexadecimal string.
+        //      Important! input must be integers with a range of 0 to 255.
+        //      To keep the function as light as possible there is no idiot-proofing,
+        //      if you pass in bad data I'm not fixing it for you :-)
+        //
+        // red: Number
+        //  number ranging from 0 to 255 indicating the amount of red
+        // green: Number
+        //  number ranging from 0 to 255 indicating the amount of green
+        // blue: Number
+        //  number ranging from 0 to 255 indicating the amount of blue
+        //
+        // returns: String
+        //  6 digit Hexadecimal string value
+        //
+        // example:
+        //      Convert the RGB values [192, 255, 238] (blue color) to Hexadecimal string.
+        //      The variable "hex" will be equal to "c0ffee"
+        //
+        //      var hex = toHex(192, 255, 238);
+
+        //return 6 digit Hexadecimal string
+        return ((blue | green << 8 | red << 16) | 1 << 24).toString(16).slice(1);
+    };
+
+var luminosity = 'random';
+var count = 10;
+var hue = 'random';
+
+if (process.argv.length == 4) {
+    // e.g. randrgb light blue
+    luminosity = process.argv[2];
+    hue = process.argv[3];
+} else if (process.argv.length == 3) {
+    var v = process.argv[2];
+    if (v == 'light' || v == 'bright' || v == 'dark') {
+        // e.g. randrgb dark
+        luminosity = v;
+    } else {
+        // e.g. randrgb green
+        hue = v;
+    }
+}
+
+var options = {
+    format: 'rgb',
+    luminosity: luminosity,
+    count: 10,
+    hue: hue
+};
+
+var colorstr = randomColor(options);
+
+if (typeof(colorstr) == 'object') {
+    for (var i = 0; i < colorstr.length; i++) {
+        console.log(printableLine(colorstr[i]));
+    }
+} else {
+    console.log(printableLine(colorstr));
+}
+
+function printableLine(rgb) {
+    var regex = /rgb\((\d+), *(\d+), *(\d+)\)/;
+    var matches = regex.exec(rgb);
+
+    var str = matches[1] + ';' + matches[2] + ';' + matches[3];
+
+    var colorbar = colorizeBackground(str, '             ');
+
+    var hex = '#' + toHex(matches[1], matches[2], matches[3]);
+
+    var rgbText = colorizeForeground(str, hex);
+
+    return colorbar + '  ' + rgbText + '  ' + colorbar;
+}
+
+
+function colorizeBackground(rgb, str) {
+   // set foreground color to black
+   var color = '\x1b[38;2;0;0;0m';
+
+   // set background color to random
+   color += '\x1b[48;2;' + rgb + 'm';
+
+   // set text
+   color += str;
+
+   // set back to normal
+   color += '\x1b[0m';
+
+   return color;
+}
+
+function colorizeForeground(rgb, str) {
+   // set foreground color to random
+   var color = '\x1b[38;2;' + rgb + 'm';
+
+   // set text
+   color += str;
+
+   // set back to normal
+   color += '\x1b[0m';
+
+   return color;
+
+}
+
+
